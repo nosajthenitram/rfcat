@@ -2,6 +2,8 @@
 The pre-made windows structure defs (extracted from pdb syms)
 '''
 
+from __future__ import absolute_import
+from __future__ import print_function
 import envi
 import ctypes
 import platform
@@ -27,10 +29,10 @@ def getCurrentDef(normname):
 
     try:
         mod = __import__(modname, {}, {}, 1)
-    except ImportError, e:
+    except ImportError as e:
         mod = None
     return mod
 
 if __name__ == '__main__':
-    print getCurrentDef('ntdll')
+    print(getCurrentDef('ntdll'))
 

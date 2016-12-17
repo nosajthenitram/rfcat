@@ -19,15 +19,18 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import time
 import numpy
 import threading
 import rflib
-import cPickle as pickle
+import six.moves.cPickle as pickle
 
 from PySide import QtCore, QtGui
 from PySide.QtCore import Qt, QPointF, QLineF
+from six.moves import range
 
 def ensureQapp():
     global _qt_app
@@ -169,7 +172,7 @@ class RenderArea(QtGui.QWidget):
                 path_now = QtGui.QPainterPath()
                 path_max = QtGui.QPainterPath()
                 
-                bins = range(len(frequency_axis))
+                bins = list(range(len(frequency_axis)))
                 x_axis = self._hz_to_x(frequency_axis)
                 y_now = self._dbm_to_y(rssi_values)
                 y_max = self._dbm_to_y(numpy.amax(self._persisted_frames, axis=0))
@@ -346,7 +349,7 @@ class Window(QtGui.QWidget):
                 numChans = int((self._high_freq-self._low_freq) / self._spacing)
                 data._doSpecAn(freq, spc, numChans)
             else:
-                data = pickle.load(file(data,'rb'))
+                data = pickle.load(open(data,'rb'))
         if data is None:
             raise Exception('Data not found')
         return data
@@ -406,22 +409,22 @@ class Window(QtGui.QWidget):
             key= chr(event.key()).upper()
             event.accept()
         except:
-            print 'Unknown key pressed: 0x%x' % event.key()
+            print('Unknown key pressed: 0x%x' % event.key())
             event.ignore()
             return
         if key == 'H':
-            print 'Key              Action' 
-            print
-            print ' <LEFT ARROW>        Reduce base frequency by one step'
-            print ' <RIGHT ARROW>       Increase base frequency by one step'
-            print ' <DOWN ARROW>        Reduce frequency step 10%'
-            print ' <UP ARROW>          Increase frequency step 10%'
-            print ' <LEFT MOUSE>        Mark LEFT frequency / signal strength at pointer'
-            print ' <RIGHT MOUSE>       Mark RIGHT frequency / signal strength at pointer'
-            print ' <MIDDLE MOUSE>      Toggle visibility of frequency / signal strength markers'
-            print ' H                   Print this HELP text'
-            print ' M                   Simulate MIDDLE MOUSE click (for those with trackpads)'
-            print ' Q                   Quit'
+            print('Key              Action') 
+            print()
+            print(' <LEFT ARROW>        Reduce base frequency by one step')
+            print(' <RIGHT ARROW>       Increase base frequency by one step')
+            print(' <DOWN ARROW>        Reduce frequency step 10%')
+            print(' <UP ARROW>          Increase frequency step 10%')
+            print(' <LEFT MOUSE>        Mark LEFT frequency / signal strength at pointer')
+            print(' <RIGHT MOUSE>       Mark RIGHT frequency / signal strength at pointer')
+            print(' <MIDDLE MOUSE>      Toggle visibility of frequency / signal strength markers')
+            print(' H                   Print this HELP text')
+            print(' M                   Simulate MIDDLE MOUSE click (for those with trackpads)')
+            print(' Q                   Quit')
             return
         if key == 'M':
             self.render_area._mouse_x = None
@@ -431,10 +434,10 @@ class Window(QtGui.QWidget):
             self.render_area._hide_markers = not self.render_area._hide_markers
             return
         if key == 'Q':
-            print 'Quit!'
+            print('Quit!')
             self.close()
             return
-        print 'Unsupported key pressed:', key
+        print('Unsupported key pressed:', key)
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)

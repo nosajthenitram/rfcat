@@ -1,6 +1,8 @@
 
+from __future__ import absolute_import
 import vstruct
 from vstruct.primitives import *
+from six.moves import range
 
 class IMAGE_BASE_RELOCATION(vstruct.VStruct):
     def __init__(self):

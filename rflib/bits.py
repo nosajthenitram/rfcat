@@ -1,9 +1,12 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import struct
+from six.moves import range
 
 fmtsLSB = [None, "B", "<H", "<I", "<I", "<Q", "<Q", "<Q", "<Q"]
 fmtsMSB = [None, "B", ">H", ">I", ">I", ">Q", ">Q", ">Q", ">Q"]
 sizes = [ 0, 1, 2, 4, 4, 8, 8, 8, 8]
-masks = [ (1<<(8*i))-1 for i in xrange(9) ]
+masks = [ (1<<(8*i))-1 for i in range(9) ]
 
 def wtfo(string):
     outstr = []
@@ -29,9 +32,9 @@ def strBitReverse(string):
         num <<= 8
         num |= ord(ch)
 
-    print (hex(num))
+    print((hex(num)))
     rnum = bitReverse(num, bits)
-    print (hex(rnum))
+    print((hex(rnum)))
 
     # convert back from MSB number to string
     out = []
@@ -39,7 +42,7 @@ def strBitReverse(string):
         out.append(chr(rnum&0xff))
         rnum >>= 8
     out.reverse()
-    print(''.join(out).encode('hex'))
+    print((''.join(out).encode('hex')))
     return ''.join(out)
 
 def strXorMSB(string, xorval, size):
@@ -74,7 +77,7 @@ def bitReverse(num, bitcnt):
 def shiftString(string, bits):
     carry = 0
     news = []
-    for x in xrange(len(string)-1):
+    for x in range(len(string)-1):
         newc = ((ord(string[x]) << bits) + (ord(string[x+1]) >> (8-bits))) & 0xff
         news.append("%c"%newc)
     newc = (ord(string[-1])<<bits) & 0xff
@@ -123,7 +126,7 @@ def whitenData(data, seed=0xffff, getNextByte=getNextByte_feedbackRegister7bitsM
 
     carry = 0
     news = []
-    for x in xrange(len(data)-1):
+    for x in range(len(data)-1):
         newc = ((ord(data[x]) ^ getNextByte() ) & 0xff)
         news.append("%c"%newc)
     return "".join(news)
@@ -180,7 +183,7 @@ def findSyncWord(byts, sensitivity=4, minpreamble=2):
                 #print "bits: %x" % (bits1)
                 
                 bitcount = min( 2 * sensitivity, 17 ) 
-                for frontbits in xrange( bitcount ):            # with so many bit-inverted systems, let's not assume we know anything about the bit-arrangement.  \x55\x55 could be a perfectly reasonable preamble.
+                for frontbits in range( bitcount ):            # with so many bit-inverted systems, let's not assume we know anything about the bit-arrangement.  \x55\x55 could be a perfectly reasonable preamble.
                     poss = (bits1 >> frontbits) & 0xffff
                     if not poss in possDwords:
                         possDwords.append(poss)
@@ -227,28 +230,28 @@ def findSyncWordDoubled(byts):
             
 
             frontbits = 0
-            for frontbits in xrange(16, 40, 2):    #FIXME: if this doesn't work, try 16, then 18+frontbits
+            for frontbits in range(16, 40, 2):    #FIXME: if this doesn't work, try 16, then 18+frontbits
                 dwb1 = (bits1 >> (frontbits)) & 3
                 dwb2 = (bits2 >> (frontbits)) & 3
-                print "\tfrontbits: %d \t\t dwb1: %s dwb2: %s" % (frontbits, bin(bits1 >> (frontbits)), bin(bits2 >> (frontbits)))
+                print("\tfrontbits: %d \t\t dwb1: %s dwb2: %s" % (frontbits, bin(bits1 >> (frontbits)), bin(bits2 >> (frontbits))))
                 if dwb2 != dwb1:
                     break
 
             # frontbits now represents our unknowns...  let's go from the other side now
-            for tailbits in xrange(16, -1, -2):
+            for tailbits in range(16, -1, -2):
                 dwb1 = (bits1 >> (tailbits)) & 3
                 dwb2 = (bits2 >> (tailbits)) & 3
-                print "\ttailbits: %d\t\t dwb1: %s dwb2: %s" % (tailbits, bin(bits1 >> (tailbits)), bin(bits2 >> (tailbits)))
+                print("\ttailbits: %d\t\t dwb1: %s dwb2: %s" % (tailbits, bin(bits1 >> (tailbits)), bin(bits2 >> (tailbits))))
                 if dwb2 != dwb1:
                     tailbits += 2
                     break
 
             # now, if we have a double syncword, iinm, tailbits + frontbits >= 16
-            print "frontbits: %d\t\t tailbits: %d, bits: %s " % (frontbits, tailbits, bin((bits2>>tailbits & 0xffffffff)))
+            print("frontbits: %d\t\t tailbits: %d, bits: %s " % (frontbits, tailbits, bin((bits2>>tailbits & 0xffffffff))))
             if (frontbits + tailbits >= 16):
                 tbits = bits2 >> (tailbits&0xffff)
                 tbits &= (0xffffffff)
-                print "tbits: %x" % tbits
+                print("tbits: %x" % tbits)
 
                 poss = tbits&0xffffffff
                 if poss not in possDwords:
@@ -311,8 +314,8 @@ def detectRepeatPatterns(data, size=64, minEntropy=.07):
             if d1 == d2 and d1 > 0:
                 s1 = p1 - size
                 s2 = p2 - size
-                print "s1: %d\t  p1: %d\t  " % (s1, p1)
-                print "s2: %d\t  p2: %d\t  " % (s2, p2)
+                print("s1: %d\t  p1: %d\t  " % (s1, p1))
+                print("s2: %d\t  p2: %d\t  " % (s2, p2))
                 # complete the pattern until the numbers differ or meet
                 while True:
                     p1 += 1
@@ -334,9 +337,9 @@ def detectRepeatPatterns(data, size=64, minEntropy=.07):
 
                 bitSection, ent = bitSectString(data, s1, s1+length)
                 if ent > minEntropy:
-                    print "success:"
-                    print "  * bit idx1: %4d (%4d bits) - '%s' %s" % (s1, length, bin(d1), bitSection.encode("hex"))
-                    print "  * bit idx2: %4d (%4d bits) - '%s'" % (s2, length, bin(d2))
+                    print("success:")
+                    print("  * bit idx1: %4d (%4d bits) - '%s' %s" % (s1, length, bin(d1), bitSection.encode("hex")))
+                    print("  * bit idx2: %4d (%4d bits) - '%s'" % (s2, length, bin(d2)))
             #else:
             #    print "  * idx1: %d - '%s'  * idx2: %d - '%s'" % (p1, d1, p2, d2)
             p2 += 1
@@ -449,9 +452,9 @@ def reprBitArray(bitAry, width=194):
     # top line
     #FIXME: UGGGGLY and kinda broken.
     fraction = 1.0 * arylen/width
-    expand = [bitAry[int(x*fraction)] for x in xrange(width)]
+    expand = [bitAry[int(x*fraction)] for x in range(width)]
 
-    for bindex in xrange(width):
+    for bindex in range(width):
         bits = 0
         if bindex>0:
             bits += (expand[bindex-1]) << (2)
@@ -565,12 +568,12 @@ def biphase_mark_coding_encode(data):
 
             last = bit
         if bidx & 1:
-            print "%d - write" % bidx
+            print("%d - write" % bidx)
             out.append(chr(obyte))
         else:
-            print "%d - skip" % bidx
+            print("%d - skip" % bidx)
     if not (bidx & 1):
-        print "%d - write" % bidx
+        print("%d - write" % bidx)
         out.append(chr(obyte))
 
     return ''.join(out)
@@ -637,7 +640,7 @@ def findManchesterData(data, hilo=1):
             pass
 
 def findManchester(data, minbytes=10):
-    print "DEBUG: DATA=" + repr(data)
+    print("DEBUG: DATA=" + repr(data))
     success = []
 
     last = 0

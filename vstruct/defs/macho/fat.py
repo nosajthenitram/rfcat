@@ -1,4 +1,5 @@
 
+from __future__ import absolute_import
 import vstruct
 import vstruct.primitives as vs_prim
 

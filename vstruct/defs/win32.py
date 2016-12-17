@@ -1,8 +1,10 @@
 
 # FIXME this is named wrong!
 
+from __future__ import absolute_import
 import vstruct
 from vstruct.primitives import *
+from six.moves import range
 
 class CLIENT_ID(vstruct.VStruct):
     def __init__(self):

@@ -1,8 +1,11 @@
 
+from __future__ import absolute_import
+from __future__ import print_function
 import struct
-from StringIO import StringIO
+from io import StringIO
 
 import vstruct.primitives as vs_prims
+from six.moves import range
 
 def isVstructType(x):
     return isinstance(x, vs_prims.v_base)
@@ -109,7 +112,7 @@ class VStruct(vs_prims.v_base):
 
             delta = len(self) % align
             if delta != 0:
-                print "PADDING %s by %d" % (name,align-delta)
+                print("PADDING %s by %d" % (name,align-delta))
                 pname = "_pad%d" % self._vs_padnum
                 self._vs_padnum += 1
                 self._vs_fields.append(pname)

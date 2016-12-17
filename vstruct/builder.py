@@ -4,6 +4,8 @@ VStruct builder!  Used to serialize structure definitions etc...
 
 '''
 
+from __future__ import absolute_import
+from __future__ import print_function
 import types
 import inspect
 import vstruct
@@ -50,7 +52,7 @@ class VStructBuilder:
         if vsdef != None:
             return VStructConstructor(self, name)
 
-        raise AttributeError, name
+        raise AttributeError(name)
 
     def addVStructEnumeration(self, enum):
         self._vs_enums[enum[0]] = enum
@@ -59,17 +61,17 @@ class VStructBuilder:
         self._vs_namespaces[name] = builder
 
     def getVStructNamespaces(self):
-        return self._vs_namespaces.items()
+        return list(self._vs_namespaces.items())
 
     def getVStructNamespaceNames(self):
-        return self._vs_namespaces.keys()
+        return list(self._vs_namespaces.keys())
 
     def hasVStructNamespace(self, namespace):
         return self._vs_namespaces.get(namespace, None) != None
 
     def getVStructNames(self, namespace=None):
         if namespace == None:
-            return self._vs_defs.keys()
+            return list(self._vs_defs.keys())
         nsmod = self._vs_namespaces.get(namespace)
         ret = []
         for name in dir(nsmod):
@@ -228,7 +230,7 @@ if __name__ == '__main__':
     import PE
     import vtrace.platforms.win32 as vt_win32
 
-    p = PE.PE(file(sys.argv[1], 'rb'))
+    p = PE.PE(open(sys.argv[1], 'rb'))
     baseaddr = p.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
     osmajor = p.IMAGE_NT_HEADERS.OptionalHeader.MajorOperatingSystemVersion
     osminor = p.IMAGE_NT_HEADERS.OptionalHeader.MinorOperatingSystemVersion
@@ -239,11 +241,11 @@ if __name__ == '__main__':
     parser = vt_win32.Win32SymbolParser(0xffffffff, sys.argv[1], baseaddr)
     parser.parse()
 
-    t = parser._sym_types.values()
-    e = parser._sym_enums.values()
+    t = list(parser._sym_types.values())
+    e = list(parser._sym_enums.values())
     builder = VStructBuilder(defs=t, enums=e)
 
-    print '# Version: %d.%d' % (osmajor, osminor)
-    print '# Architecture: %s' % archname
-    print builder.genVStructPyCode()
+    print('# Version: %d.%d' % (osmajor, osminor))
+    print('# Architecture: %s' % archname)
+    print(builder.genVStructPyCode())
 

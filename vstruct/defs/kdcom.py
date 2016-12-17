@@ -3,6 +3,7 @@ Initial module with supporting structures for windows
 kernel serial debugging.
 """
 
+from __future__ import absolute_import
 import vstruct
 from vstruct.primitives import *
 

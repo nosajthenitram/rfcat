@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import vstruct
 from vstruct.primitives import *
 

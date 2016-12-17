@@ -1,6 +1,7 @@
 
 # Import all local structure modules
-import elf
-import pe
-import win32
+from __future__ import absolute_import
+from . import elf
+from . import pe
+from . import win32
 

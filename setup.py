@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import sys
 import os
 from distutils.core import setup, Extension
@@ -12,7 +13,7 @@ scripts = ['rfcat', 'rfcat_server', 'CC-Bootloader/rfcat_bootloader',
 try:
     REV = os.popen('./revision.sh').readline()
     if len(REV):
-        file('rflib/rflib_version.py', 'wb').write( "RFLIB_VERSION=%s" % REV)
+        open('rflib/rflib_version.py', 'wb').write( "RFLIB_VERSION=%s" % REV)
 except:
     sys.excepthook(*sys.exc_info())
 

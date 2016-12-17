@@ -1,6 +1,9 @@
 #!/usr/bin/env ipython -i --no-banner
-from chipcon_nic import *
+from __future__ import absolute_import
+from __future__ import print_function
+from .chipcon_nic import *
 import rflib.bits as rfbits
+from six.moves import range
 
 RFCAT_START_SPECAN  = 0x40
 RFCAT_STOP_SPECAN   = 0x41
@@ -10,9 +13,9 @@ MAX_FREQ = 936e6
 class RfCat(FHSSNIC):
     def RFdump(self, msg="Receiving", maxnum=100, timeoutms=1000):
         try:
-            for x in xrange(maxnum):
+            for x in range(maxnum):
                 y, t = self.RFrecv(timeoutms)
-                print "(%5.3f) %s:  %s" % (t, msg, y.encode('hex'))
+                print("(%5.3f) %s:  %s" % (t, msg, y.encode('hex')))
         except ChipconUsbTimeoutException:
             pass
 
@@ -23,18 +26,18 @@ class RfCat(FHSSNIC):
         self.RFdump("Clearing")
         self.lowball(lowball)
         self.setMdmDRate(drate)
-        print "Scanning range:  "
+        print("Scanning range:  ")
         while not keystop():
             try:
-                print "(press Enter to quit)"
-                for freq in xrange(int(basefreq), int(basefreq+(inc*count)), int(inc)):
-                    print "Scanning for frequency %d..." % freq
+                print("(press Enter to quit)")
+                for freq in range(int(basefreq), int(basefreq+(inc*count)), int(inc)):
+                    print("Scanning for frequency %d..." % freq)
                     self.setFreq(freq)
                     self.RFdump(timeoutms=delaysec*1000)
                     if keystop():
                         break
             except KeyboardInterrupt:
-                print "Please press <enter> to stop"
+                print("Please press <enter> to stop")
 
         sys.stdin.read(1)
         self.lowballRestore()
@@ -197,10 +200,10 @@ def interactive(idx=0, DongleClass=RfCat, intro=''):
     try:
         import IPython.Shell
         ipsh = IPython.Shell.IPShell(argv=[''], user_ns=lcls, user_global_ns=gbls)
-        print intro
+        print(intro)
         ipsh.mainloop(intro)
 
-    except ImportError, e:
+    except ImportError as e:
         try:
             from IPython.terminal.interactiveshell import TerminalInteractiveShell
             ipsh = TerminalInteractiveShell()
@@ -208,7 +211,7 @@ def interactive(idx=0, DongleClass=RfCat, intro=''):
             ipsh.user_global_ns.update(lcls)
             ipsh.autocall = 2       # don't require parenthesis around *everything*.  be smart!
             ipsh.mainloop(intro)
-        except ImportError, e:
+        except ImportError as e:
             try:
                 from IPython.frontend.terminal.interactiveshell import TerminalInteractiveShell
                 ipsh = TerminalInteractiveShell()
@@ -216,8 +219,8 @@ def interactive(idx=0, DongleClass=RfCat, intro=''):
                 ipsh.user_global_ns.update(lcls)
                 ipsh.autocall = 2       # don't require parenthesis around *everything*.  be smart!
                 ipsh.mainloop(intro)
-            except ImportError, e:
-                print e
+            except ImportError as e:
+                print(e)
                 shell = code.InteractiveConsole(gbls)
                 shell.interact(intro)
 
