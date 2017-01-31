@@ -189,7 +189,7 @@ class USBDongle:
 
     def cleanup(self):
         self._usberrorcnt = 0;
-        self.recv_queue = ''
+        self.recv_queue = bytearray()
         self.recv_mbox  = {}
         self.recv_event = threading.Event()
         self.xmit_event = threading.Event()
@@ -198,7 +198,7 @@ class USBDongle:
         self.xmit_event.clear()
         self.reset_event.clear()
         self.trash = []
-   
+
     def setRFparameters(self):
         pass
 
@@ -250,7 +250,7 @@ class USBDongle:
 
         # claim that interface!
         do = dongles[self.idx][2]
-        
+
         try:
             do.claimInterface(0)
         except Exception as e:
@@ -291,7 +291,7 @@ class USBDongle:
 
     def resetup(self, console=True, copyDongle=None):
         self._do=None
-        if self._bootloader: 
+        if self._bootloader:
             return
         #self._threadGo = True
         if self._debug: print(("waiting (resetup) %x" % self.idx), file=sys.stderr)
@@ -335,7 +335,7 @@ class USBDongle:
         if direct:
             self._do.bulkWrite(5, buf, timeout)
             return
-        
+
         while (len(buf)>0):
             drain = buf[:self._usbmaxo]
             buf = buf[self._usbmaxo:]
@@ -352,7 +352,7 @@ class USBDongle:
                 self.xmit_event.set()
                 self.xsema.release()
                 if self._debug: print(repr(self.xmit_queue), file=sys.stderr)
-        
+
     def _recvEP5(self, timeout=100):
         retary = ["%c"%x for x in self._do.bulkRead(0x85, 500, timeout)]
         if self._debug: print("RECV:"+repr(retary), file=sys.stderr)
@@ -372,7 +372,7 @@ class USBDongle:
         elif self.recv_mbox.get(APP_SYSTEM) != None:
             self.trash.extend(self.recvAll(APP_SYSTEM))
         self.trash.append((time.time(),self.recv_queue))
-        self.recv_queue = ''
+        self.recv_queue = bytearray()
         # self.xmit_queue = []          # do we want to keep this?
         if threadGoSet: self._threadGo.set()
 
@@ -397,7 +397,7 @@ class USBDongle:
                     msg = self.xmit_queue.pop(0)
                     if not len(self.xmit_queue): # if there was only one message
                         self.xmit_event.clear() # clear the queue, within the lock
-                    
+
                     self.xsema.release()
 
                     self._sendEP5(msg)
@@ -476,7 +476,7 @@ class USBDongle:
                 #### first we populate the queue
                 msg = self._recvEP5(timeout=self.ep5timeout)
                 if len(msg) > 0:
-                    self.recv_queue += msg
+                    self.recv_queue.apped(msg)
                     msgrecv = True
             except usb.USBError as e:
                 #sys.stderr.write(repr(self.recv_queue))
@@ -533,7 +533,7 @@ class USBDongle:
                             if self._debug: print(("runEP5(): idx>0?"), file=sys.stderr)
                             self.trash.append(self.recv_queue[:idx])
                             self.recv_queue = self.recv_queue[idx:]
-                   
+
                         # recv_queue is vulnerable here, but it's ok because we only modify it earlier in this same thread
                         # DON'T CHANGE recv_queue from other threads!
                         msg = self.recv_queue
@@ -544,7 +544,7 @@ class USBDongle:
                                 self._recv_time = time.time()
                             app = ord(msg[1])
                             cmd = ord(msg[2])
-                            length, = struct.unpack("<H", bytes(msg[3:5], 'latin-1'))
+                            length, = struct.unpack("<H", msg[3:5])
 
                             if self._debug>1: print(("recvthread: app=%x  cmd=%x  len=%x"%(app,cmd,length)), file=sys.stderr)
 
@@ -564,7 +564,7 @@ class USBDongle:
                                         sys.excepthook(*sys.exc_info())
                                     finally:
                                         self.rsema.release()                            # THREAD SAFETY DANCE COMPLETE
-                               
+
                                 q = b.get(cmd)
 
                                 if self.rsema.acquire():                            # THREAD SAFETY DANCE
@@ -583,8 +583,8 @@ class USBDongle:
                                         sys.excepthook(*sys.exc_info())
                                     finally:
                                         self.rsema.release()                            # THREAD SAFETY DANCE COMPLETE
-                               
-                            else:            
+
+                            else:
                                 if self._debug>1:     sys.stderr.write('=')
 
                             msg = self.recv_queue
@@ -607,7 +607,7 @@ class USBDongle:
     ######## APPLICATION API ########
     def recv(self, app, cmd=None, wait=USB_RX_WAIT):
         '''
-        high-level USB EP5 receive.  
+        high-level USB EP5 receive.
         checks the mbox for app "app" and command "cmd" and returns the next one in the queue
         if any of this does not exist yet, wait for a RECV event until "wait" times out.
         RECV events are generated by the low-level recv thread "runEP5_recv()"
@@ -671,7 +671,7 @@ class USBDongle:
                         retval = b.get(cmd)
                         b[cmd]=[]
                         if len(retval):
-                            retval = [ (d[4:],t) for d,t in retval ] 
+                            retval = [ (d[4:],t) for d,t in retval ]
                     except:
                         sys.excepthook(*sys.exc_info())
                     finally:
@@ -692,12 +692,7 @@ class USBDongle:
         msg.append(app)
         msg.append(cmd)
         msg.extend(struct.pack("<H",len(buf)))
-        
-        if type(buf) is str:
-            if buf != '':
-                msg.extend(bytes(buf, 'latin-1'))
-        else:
-            msg.extend(buf)
+        msg.extend(buf)
 
         self.xsema.acquire()
         self.xmit_queue.append(msg)
@@ -720,7 +715,7 @@ class USBDongle:
         this only works if the dongle isn't in a hard-loop or some other corrupted state
         that neglects usbprocessing.
 
-        two values are returned.  
+        two values are returned.
         the first value is lastCode[0] and represents standard tracking messages (we were <here>)
         the second value is lastCode[1] and represents exception information (writing OUT while buffer in use!)
 
@@ -733,7 +728,7 @@ class USBDongle:
             return x
 
     def clearDebugCodes(self):
-        retval = self.send(APP_SYSTEM, SYS_CMD_CLEAR_CODES, "  ", 1000)
+        retval = self.send(APP_SYSTEM, SYS_CMD_CLEAR_CODES, b'', 1000)
         return LCES.get(retval)
 
     def ep0GetAddr(self):
@@ -747,7 +742,7 @@ class USBDongle:
         x = self._recvEP0(request=EP0_CMD_PEEKX, value=addr, length=length, timeout=timeout)
         return x#x[3:]
 
-    def ep0Poke(self, addr, buf='\x00', timeout=100):
+    def ep0Poke(self, addr, buf=b'0x00', timeout=100):
         x = self._sendEP0(request=EP0_CMD_POKEX, buf=buf, value=addr, timeout=timeout)
         return x
 
@@ -791,7 +786,7 @@ class USBDongle:
 
     def getPartNum(self):
         try:
-            r = self.send(APP_SYSTEM, SYS_CMD_PARTNUM, "", 10000)
+            r = self.send(APP_SYSTEM, SYS_CMD_PARTNUM, b'', 10000)
             r,rt = r
         except ChipconUsbTimeoutException as e:
             r = None
@@ -800,13 +795,13 @@ class USBDongle:
         return ord(r)
 
 
-    def ping(self, count=10, buf="ABCDEFGHIJKLMNOPQRSTUVWXYZ", wait=DEFAULT_USB_TIMEOUT, silent=False):
+    def ping(self, count=10, buf=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'], wait=DEFAULT_USB_TIMEOUT, silent=False):
         good=0
         bad=0
         start = time.time()
         for x in range(count):
             istart = time.time()
-            
+
             try:
                 r = self.send(APP_SYSTEM, SYS_CMD_PING, buf, wait)
                 r,rt = r
@@ -831,40 +826,36 @@ class USBDongle:
         '''
         try:
             self._bootloader = True
-            r = self.send(APP_SYSTEM, SYS_CMD_BOOTLOADER, "", wait=1)
+            r = self.send(APP_SYSTEM, SYS_CMD_BOOTLOADER, b'', wait=1)
         except ChipconUsbTimeoutException:
             pass
-        
+
     def RESET(self):
         try:
-            r = self.send(APP_SYSTEM, SYS_CMD_RESET, "RESET_NOW\x00")
+            r = self.send(APP_SYSTEM, SYS_CMD_RESET, ['R','E','S','E','T','_','N','O','W',0x00])
         except ChipconUsbTimeoutException:
             pass
-        
+
     def peek(self, addr, bytecount=1):
         r, t = self.send(APP_SYSTEM, SYS_CMD_PEEK, struct.pack("<HH", bytecount, addr))
-        return bytes(r,'latin-1')
+        return r
 
     def poke(self, addr, data):
-        if type(data) is str:
-            data = bytes(data, 'latin-1')
         r, t = self.send(APP_SYSTEM, SYS_CMD_POKE, struct.pack("<H", addr) + data)
-        return bytes(r,'latin-1')
-    
+        return r
+
     def pokeReg(self, addr, data):
-        if type(data) is str:
-            data = bytes(data, 'latin-1')
         r, t = self.send(APP_SYSTEM, SYS_CMD_POKE_REG, struct.pack("<H", addr) + data)
-        return bytes(r,'latin-1')
+        return r
 
     def getBuildInfo(self):
-        r, t = self.send(APP_SYSTEM, SYS_CMD_BUILDTYPE, '')
-        return bytes(r,'latin-1')
-            
+        r, t = self.send(APP_SYSTEM, SYS_CMD_BUILDTYPE, b'')
+        return r
+
     def getCompilerInfo(self):
-        r, t = self.send(APP_SYSTEM, SYS_CMD_COMPILER, '')
-        return bytes(r,'latin-1')
-            
+        r, t = self.send(APP_SYSTEM, SYS_CMD_COMPILER, b'')
+        return r
+
     def getInterruptRegisters(self):
         regs = {}
         # IEN0,1,2
@@ -907,7 +898,7 @@ class USBDongle:
             output.append("Compiler:            Not found! Update needed!")
         # see if we have a bootloader by loooking for it's recognition semaphores
         # in SFR I2SCLKF0 & I2SCLKF1
-        if(self.peek(0xDF46,1) == '\xF0' and self.peek(0xDF47,1) == '\x0D'):
+        if(self.peek(0xDF46,1) == 0xF0 and self.peek(0xDF47,1) == 0x0D):
             output.append("Bootloader:          CC-Bootloader")
         else:
             output.append("Bootloader:          Not installed")
@@ -942,13 +933,13 @@ class USBDongle:
 def unittest(self, mhz=24):
     print("\nTesting USB ping()")
     self.ping(3)
-    
+
     print("\nTesting USB ep0Ping()")
     self.ep0Ping()
-    
+
     print("\nTesting USB enumeration")
     print("getString(0,100): %s" % repr(self._do.getString(0,100)))
-    
+
     print("\nTesting USB EP MAX_PACKET_SIZE handling (ep0Peek(0xf000, 100))")
     print(repr(self.ep0Peek(0xf000, 100)))
 
@@ -962,7 +953,7 @@ def unittest(self, mhz=24):
     ndata = self.peek(where, len(data))
     if ndata != data:
         print(" *FAILED*\n '%s'\n '%s'" % (data.encode("hex"), ndata.encode("hex")))
-        raise Exception(" *FAILED*\n '%s'\n '%s'" % (data.encode("hex"), ndata.encode("hex"))))
+        raise Exception(" *FAILED*\n '%s'\n '%s'" % (data.encode("hex"), ndata.encode("hex")))
     else:
         print("  passed  '%s'" % (ndata.encode("hex")))
 
