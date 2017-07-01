@@ -196,11 +196,11 @@ def interactive(idx=0, DongleClass=RfCat, intro=''):
 
     gbls = globals()
     lcls = locals()
+    print(intro)
 
     try:
         import IPython.Shell
         ipsh = IPython.Shell.IPShell(argv=[''], user_ns=lcls, user_global_ns=gbls)
-        print(intro)
         ipsh.mainloop(intro)
 
     except ImportError as e:

@@ -189,7 +189,7 @@ class USBDongle:
 
     def cleanup(self):
         self._usberrorcnt = 0;
-        self.recv_queue = bytearray()
+        self.recv_queue = []
         self.recv_mbox  = {}
         self.recv_event = threading.Event()
         self.xmit_event = threading.Event()
@@ -323,9 +323,13 @@ class USBDongle:
         return self._do.controlMsg(USB_BM_REQTYPE_TGT_EP|USB_BM_REQTYPE_TYPE_VENDOR|USB_BM_REQTYPE_DIR_OUT, request, buf, value, index, timeout), buf
 
     def _recvEP0(self, request=0, length=64, value=0, index=0, timeout=100):
-        retary = ["%c"%x for x in self._do.controlMsg(USB_BM_REQTYPE_TGT_EP|USB_BM_REQTYPE_TYPE_VENDOR|USB_BM_REQTYPE_DIR_IN, request, length, value, index, timeout)]
+        #retary = ["%c"%x for x in self._do.controlMsg(USB_BM_REQTYPE_TGT_EP|USB_BM_REQTYPE_TYPE_VENDOR|USB_BM_REQTYPE_DIR_IN, request, length, value, index, timeout)]
+        retary = bytearray()
+        for x in self._do.controlMsg(USB_BM_REQTYPE_TGT_EP|USB_BM_REQTYPE_TYPE_VENDOR|USB_BM_REQTYPE_DIR_IN, request, length, value, index, timeout):
+            retary.append(x)
         if len(retary):
-            return ''.join(retary)
+            return retary
+            #return ''.join(retary)
         return ""
 
     def _sendEP5(self, buf=None, timeout=DEFAULT_USB_TIMEOUT):
@@ -354,12 +358,16 @@ class USBDongle:
                 if self._debug: print(repr(self.xmit_queue), file=sys.stderr)
 
     def _recvEP5(self, timeout=100):
-        retary = ["%c"%x for x in self._do.bulkRead(0x85, 500, timeout)]
+        #retary = ["%c"%x for x in self._do.bulkRead(0x85, 500, timeout)]
+        retary = bytearray()
+        for x in self._do.bulkRead(0x85, 500, timeout):
+            retary.append(x)
         if self._debug: print("RECV:"+repr(retary), file=sys.stderr)
         if len(retary):
-            return ''.join(retary)
+            return retary
+            #return ''.join(retary)
 
-        return ''
+        return b''
 
     def _clear_buffers(self, clear_recv_mbox=False):
         threadGoSet = self._threadGo.isSet()
@@ -372,7 +380,7 @@ class USBDongle:
         elif self.recv_mbox.get(APP_SYSTEM) != None:
             self.trash.extend(self.recvAll(APP_SYSTEM))
         self.trash.append((time.time(),self.recv_queue))
-        self.recv_queue = bytearray()
+        self.recv_queue = []
         # self.xmit_queue = []          # do we want to keep this?
         if threadGoSet: self._threadGo.set()
 
@@ -476,7 +484,7 @@ class USBDongle:
                 #### first we populate the queue
                 msg = self._recvEP5(timeout=self.ep5timeout)
                 if len(msg) > 0:
-                    self.recv_queue.apped(msg)
+                    self.recv_queue.append(msg)
                     msgrecv = True
             except usb.USBError as e:
                 #sys.stderr.write(repr(self.recv_queue))
@@ -524,7 +532,8 @@ class USBDongle:
             try:
                 # FIXME: is this robust?  or just overcomplex?
                 if len(self.recv_queue):
-                    idx = self.recv_queue.find('@')
+                    msg = self.recv_queue.pop(0)
+                    idx = msg.find(b'@')
                     if (idx==-1):
                         if self._debug > 3:
                             sys.stderr.write('@')
@@ -536,22 +545,22 @@ class USBDongle:
 
                         # recv_queue is vulnerable here, but it's ok because we only modify it earlier in this same thread
                         # DON'T CHANGE recv_queue from other threads!
-                        msg = self.recv_queue
+                        #msg = self.recv_queue
                         msglen = len(msg)
                         #if self._debug > 2: print >> sys.stderr, "Sorting msg", len(msg), msg.encode("hex")
                         while (msglen>=5):                                      # if not enough to parse length... we'll wait.
                             if not self._recv_time:                             # should be 0 to start and when done with a packet
                                 self._recv_time = time.time()
-                            app = ord(msg[1])
-                            cmd = ord(msg[2])
+                            app = msg[1]
+                            cmd = msg[2]
                             length, = struct.unpack("<H", msg[3:5])
 
                             if self._debug>1: print(("recvthread: app=%x  cmd=%x  len=%x"%(app,cmd,length)), file=sys.stderr)
 
                             if (msglen >= length+5):
                                 #### if the queue has enough characters to handle the next message... chop it and put it in the appropriate recv_mbox
-                                msg = self.recv_queue[1:length+5]                   # drop the initial '@' and chop out the right number of chars
-                                self.recv_queue = self.recv_queue[length+5:]        # chop it out of the queue
+                                msg = msg[1:length+5]       # drop the initial '@' and chop out the right number of chars
+                                #msg = msg[length+5:]        # chop it out of the queue
 
                                 b = self.recv_mbox.get(app,None)
 
@@ -688,7 +697,7 @@ class USBDongle:
             return retval
 
     def send(self, app, cmd, buf, wait=USB_TX_WAIT):
-        msg = array.array('B')
+        msg = bytearray()
         msg.append(app)
         msg.append(cmd)
         msg.extend(struct.pack("<H",len(buf)))
@@ -698,7 +707,7 @@ class USBDongle:
         self.xmit_queue.append(msg)
         self.xmit_event.set()
         self.xsema.release()
-        #if self._debug: print("Sent Msg",msg.encode("hex"))
+        if self._debug: print("Sent Msg",msg.hex())
         return self.recv(app, cmd, wait)
 
     def reprDebugCodes(self, timeout=100):
@@ -795,7 +804,7 @@ class USBDongle:
         return ord(r)
 
 
-    def ping(self, count=10, buf=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'], wait=DEFAULT_USB_TIMEOUT, silent=False):
+    def ping(self, count=10, buf=bytearray("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "utf-8"), wait=DEFAULT_USB_TIMEOUT, silent=False):
         good=0
         bad=0
         start = time.time()
@@ -832,7 +841,7 @@ class USBDongle:
 
     def RESET(self):
         try:
-            r = self.send(APP_SYSTEM, SYS_CMD_RESET, ['R','E','S','E','T','_','N','O','W',0x00])
+            r = self.send(APP_SYSTEM, SYS_CMD_RESET, bytearray("RESET_NOW\x00", "utf-8"))
         except ChipconUsbTimeoutException:
             pass
 
@@ -841,10 +850,14 @@ class USBDongle:
         return r
 
     def poke(self, addr, data):
+        if type(data) == int:
+            data = bytes([data])
         r, t = self.send(APP_SYSTEM, SYS_CMD_POKE, struct.pack("<H", addr) + data)
         return r
 
     def pokeReg(self, addr, data):
+        if type(data) == int:
+            data = bytes([data])
         r, t = self.send(APP_SYSTEM, SYS_CMD_POKE_REG, struct.pack("<H", addr) + data)
         return r
 

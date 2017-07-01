@@ -313,7 +313,7 @@ class NICxx11(USBDongle):
         sets the radio state to "rfmode", and makes
         '''
         self._rfmode = rfmode
-        r = self.send(APP_SYSTEM, SYS_CMD_RFMODE, self._rfmode + parms)
+        r = self.send(APP_SYSTEM, SYS_CMD_RFMODE, bytearray(self._rfmode))
 
     ### set standard radio state to TX/RX/IDLE (TX is pretty much only good for jamming).  TX/RX modes are set to return to whatever state you choose here.
     def setModeTX(self):
@@ -1032,7 +1032,7 @@ class NICxx11(USBDongle):
                 dev_m = m
                 break
         if dev_e is None:
-            raise Exception("Deviation does not translate into acceptable parameters.  Should you be changing this?"))
+            raise Exception("Deviation does not translate into acceptable parameters.  Should you be changing this?")
 
         dev = 1000000.0 * mhz * (8+dev_m) * pow(2,dev_e) / pow(2,17)
         #print "dev_e: %x   dev_m: %x   deviatn: %f Hz" % (e, m, dev)
@@ -1240,7 +1240,7 @@ class NICxx11(USBDongle):
           (ENCCS_MODE_CBC | AES_CRYPTO_OUT_ON | AES_CRYPTO_OUT_ENCRYPT | AES_CRYPTO_IN_ON | AES_CRYPTO_IN_DECRYPT)
 
         '''
-        return self.send(APP_NIC, NIC_SET_AES_MODE, "%c"%aesmode)
+        return self.send(APP_NIC, NIC_SET_AES_MODE, struct.pack("<B", aesmode))
 
     def getAESmode(self):
         '''
@@ -1248,25 +1248,25 @@ class NICxx11(USBDongle):
         '''
         return self.send(APP_NIC, NIC_GET_AES_MODE, "")
 
-    def setAESiv(self, iv= '\0'*16):
+    def setAESiv(self, iv= 0):
         '''
         set the AES IV. this will persist until the next reboot, but it should be noted that some modes
         update the IV automatically with each operation, so care must be taken with the higher level
         protocol to ensure lost packets etc. do not cause synchronisation problems. IV must be 128 bits.
         '''
-        return self.send(APP_NIC, NIC_SET_AES_IV, iv)
+        return self.send(APP_NIC, NIC_SET_AES_IV, iv.to_bytes(16, byteorder="little"))
 
-    def setAESkey(self, key= '\0'*16):
+    def setAESkey(self, key= 0):
         '''
         set the AES key. this will persist until the next reboot. key must be 128 bits.
         '''
-        return self.send(APP_NIC, NIC_SET_AES_KEY, key)
+        return self.send(APP_NIC, NIC_SET_AES_KEY, key.to_bytes(16, byteorder="little"))
 
     def setAmpMode(self, ampmode=0):
         '''
         set the amplifier mode (RF amp external to CC1111)
         '''
-        return self.send(APP_NIC, NIC_SET_AMP_MODE, "%c"%ampmode)
+        return self.send(APP_NIC, NIC_SET_AMP_MODE, struct.pack("<B", ampmode))
     def getAmpMode(self):
         '''
         get the amplifier mode (RF amp external to CC1111)
@@ -1299,7 +1299,7 @@ class NICxx11(USBDongle):
         waitlen += repeat * (len(data) - offset)
         wait = USB_TX_WAIT * ((waitlen / RF_MAX_TX_BLOCK) + 1)
 
-        self.send(APP_NIC, NIC_XMIT, struct.pack("<HHH",len(data),repeat,offset) + data, wait=wait)
+        self.send(APP_NIC, NIC_XMIT, struct.pack("<HHH",len(data),repeat,offset) + str.encode(data), wait=wait)
 
     def RFxmitLong(self, data, doencoding=True):
         # encode, if necessary
@@ -1461,7 +1461,7 @@ class NICxx11(USBDongle):
 
             try:
                 y, t = self.RFrecv()
-                yhex = y.encode('hex')
+                yhex = y.hex()
 
                 print("(%5.3f) Received:  %s" % (t, yhex))
                 if RegExpSearch is not None:
@@ -1746,7 +1746,7 @@ class NICxx11(USBDongle):
         except ValueError as e:
             print("  ERROR checking repr: %s" % e)
 
-    def testTX(self, data=bytearray(['X','Y','Z','A','B','C','D','E','F','G','H','I','J','K','L'])):
+    def testTX(self, data=bytearray("XYZABCDEFGHIJKL", "utf-8")):
         while (sys.stdin not in select.select([sys.stdin],[],[],0)[0]):
             time.sleep(.4)
             print("transmitting %s" % repr(data))
