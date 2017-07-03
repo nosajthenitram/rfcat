@@ -9,6 +9,7 @@ import time
 import struct
 import pickle
 import threading
+import binascii
 #from chipcondefs import *
 from .chipcon_usb import *
 from six.moves import range
@@ -518,7 +519,6 @@ class NICxx11(USBDongle):
         if radiocfg==None:
             self.getRadioConfig()
             radiocfg = self.radiocfg
-
         num = (radiocfg.freq2<<16) + (radiocfg.freq1<<8) + radiocfg.freq0
         freq = num / freqmult
         return freq, hex(num)
@@ -1372,6 +1372,7 @@ class NICxx11(USBDongle):
             msg = self.endec.decode(msg)
             data = msg, ts
 
+        #print(data)
         return data
 
     def RFlisten(self):
@@ -1383,7 +1384,7 @@ class NICxx11(USBDongle):
 
             try:
                 y, t = self.RFrecv()
-                print("(%5.3f) Received:  %s  | %s" % (t, y.encode('hex'), makeFriendlyAscii(y)))
+                print("(%5.3f) Received:  %s  | %s" % (t, binascii.b2a_hex(y), y))
 
             except ChipconUsbTimeoutException:
                 pass
@@ -1403,7 +1404,7 @@ class NICxx11(USBDongle):
             try:
                 y, t = self.RFrecv()
                 #print "(%5.3f) Received:  %s" % (t, y.encode('hex'))
-                print("(%5.3f) Received:  %s  | %s" % (t, y.encode('hex'), makeFriendlyAscii(y)))
+                print("(%5.3f) Received:  %s  | %s" % (t, binascii.b2a_hex(y), y))
                 capture.append((y,t))
 
             except ChipconUsbTimeoutException:
@@ -1746,7 +1747,7 @@ class NICxx11(USBDongle):
         except ValueError as e:
             print("  ERROR checking repr: %s" % e)
 
-    def testTX(self, data=bytearray("XYZABCDEFGHIJKL", "utf-8")):
+    def testTX(self, data="XYZABCDEFGHIJKL"):
         while (sys.stdin not in select.select([sys.stdin],[],[],0)[0]):
             time.sleep(.4)
             print("transmitting %s" % repr(data))

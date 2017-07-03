@@ -707,7 +707,7 @@ class USBDongle:
         self.xmit_queue.append(msg)
         self.xmit_event.set()
         self.xsema.release()
-        if self._debug: print("Sent Msg",msg.hex())
+        if self._debug: print("Sent Msg",msg)
         return self.recv(app, cmd, wait)
 
     def reprDebugCodes(self, timeout=100):
@@ -863,36 +863,36 @@ class USBDongle:
 
     def getBuildInfo(self):
         r, t = self.send(APP_SYSTEM, SYS_CMD_BUILDTYPE, b'')
-        return r
+        return r.decode()
 
     def getCompilerInfo(self):
         r, t = self.send(APP_SYSTEM, SYS_CMD_COMPILER, b'')
-        return r
+        return r.decode()
 
     def getInterruptRegisters(self):
         regs = {}
         # IEN0,1,2
-        regs['IEN0'] = self.peek(IEN0,1)
-        regs['IEN1'] = self.peek(IEN1,1)
-        regs['IEN2'] = self.peek(IEN2,1)
+        regs['IEN0'] = "0x" + self.peek(IEN0,1).hex()
+        regs['IEN1'] = "0x" + self.peek(IEN1,1).hex()
+        regs['IEN2'] = "0x" + self.peek(IEN2,1).hex()
         # TCON
-        regs['TCON'] = self.peek(TCON,1)
+        regs['TCON'] = "0x" + self.peek(TCON,1).hex()
         # S0CON
-        regs['S0CON'] = self.peek(S0CON,1)
+        regs['S0CON'] = "0x" + self.peek(S0CON,1).hex()
         # IRCON
-        regs['IRCON'] = self.peek(IRCON,1)
+        regs['IRCON'] = "0x" + self.peek(IRCON,1).hex()
         # IRCON2
-        regs['IRCON2'] = self.peek(IRCON2,1)
+        regs['IRCON2'] = "0x" + self.peek(IRCON2,1).hex()
         # S1CON
-        regs['S1CON'] = self.peek(S1CON,1)
+        regs['S1CON'] = "0x" + self.peek(S1CON,1).hex()
         # RFIF
-        regs['RFIF'] = self.peek(RFIF,1)
+        regs['RFIF'] = "0x" + self.peek(RFIF,1).hex()
         # DMAIE
-        regs['DMAIE'] = self.peek(DMAIE,1)
+        regs['DMAIE'] = "0x" + self.peek(DMAIE,1).hex()
         # DMAIF
-        regs['DMAIF'] = self.peek(DMAIF,1)
+        regs['DMAIF'] = "0x" + self.peek(DMAIF,1).hex()
         # DMAIRQ
-        regs['DMAIRQ'] = self.peek(DMAIRQ,1)
+        regs['DMAIRQ'] = "0x" + self.peek(DMAIRQ,1).hex()
         return regs
 
     def reprHardwareConfig(self):
@@ -909,9 +909,9 @@ class USBDongle:
             output.append("Compiler:            %s" % compiler)
         except:
             output.append("Compiler:            Not found! Update needed!")
-        # see if we have a bootloader by loooking for it's recognition semaphores
+        # see if we have a bootloader by loooking for its recognition semaphores
         # in SFR I2SCLKF0 & I2SCLKF1
-        if(self.peek(0xDF46,1) == 0xF0 and self.peek(0xDF47,1) == 0x0D):
+        if(self.peek(0xDF46,1)[0] == 0xF0 and self.peek(0xDF47,1)[0] == 0x0D):
             output.append("Bootloader:          CC-Bootloader")
         else:
             output.append("Bootloader:          Not installed")
@@ -951,7 +951,7 @@ def unittest(self, mhz=24):
     self.ep0Ping()
 
     print("\nTesting USB enumeration")
-    print("getString(0,100): %s" % repr(self._do.getString(0,100)))
+    print("getString(0,100): %s" % repr(self._do.getString(2,100))) # get the product ID
 
     print("\nTesting USB EP MAX_PACKET_SIZE handling (ep0Peek(0xf000, 100))")
     print(repr(self.ep0Peek(0xf000, 100)))
@@ -960,15 +960,15 @@ def unittest(self, mhz=24):
     print(repr(self.peek(0xf000, 400)))
 
     print("\nTesting USB poke/peek")
-    data = "".join([chr(c) for c in range(120)])
+    data = bytes(range(120))
     where = 0xf300
     self.poke(where, data)
     ndata = self.peek(where, len(data))
     if ndata != data:
-        print(" *FAILED*\n '%s'\n '%s'" % (data.encode("hex"), ndata.encode("hex")))
-        raise Exception(" *FAILED*\n '%s'\n '%s'" % (data.encode("hex"), ndata.encode("hex")))
+        print(" *FAILED*\n '%s'\n '%s'" % (data, ndata))
+        raise Exception(" *FAILED*\n '%s'\n '%s'" % (data, ndata))
     else:
-        print("  passed  '%s'" % (ndata.encode("hex")))
+        print("  passed  '%s'" % (ndata))
 
 
 if __name__ == "__main__":
