@@ -13,7 +13,7 @@ scripts = ['rfcat', 'rfcat_server', 'CC-Bootloader/rfcat_bootloader',
 try:
     REV = os.popen('./revision.sh').readline()
     if len(REV):
-        open('rflib/rflib_version.py', 'wb').write( "RFLIB_VERSION=%s" % REV)
+        open('rflib/rflib_version.py', 'w').write( "RFLIB_VERSION=%s" % REV)
 except:
     sys.excepthook(*sys.exc_info())
 
