@@ -42,10 +42,10 @@ if __name__ == "__main__":
 
     if ifo.bootloader:
         if not ifo.force:
-            print "Protecting you from yourself.  If you want to trigger Bootloader mode (you will then *have* to flash a new RfCat image on it) use the --force argument as well"
+            print("Protecting you from yourself.  If you want to trigger Bootloader mode (you will then *have* to flash a new RfCat image on it) use the --force argument as well")
             exit(-1)
 
-        print "Entering RfCat Bootloader mode, ready for new image..."
+        print("Entering RfCat Bootloader mode, ready for new image...")
         RfCat(ifo.index).bootloader()
         exit(0)
 
